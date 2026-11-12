@@ -1,7 +1,6 @@
 id=bootdebian
 name=BootDebian ARM64
-version=1.0.0
-versionCode=100
+version=1.0.1
+versionCode=101
 author=BootDebian
-description=Debian 13 Trixie ARM64 CLI Chroot for Magisk and KernelSU
-
+description=Standalone Debian 13 Trixie ARM64 CLI Chroot for Magisk and KernelSU
