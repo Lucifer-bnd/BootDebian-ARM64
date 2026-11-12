@@ -1,0 +1,63 @@
+#!/system/bin/sh
+
+ROOT="/data/local/debian"
+
+if [ "$(id -u)" != "0" ]; then
+    echo "[BootDebian] Please run as root."
+    exit 1
+fi
+
+if [ ! -x "$ROOT/bin/bash" ]; then
+    echo "[BootDebian] Debian is not installed!"
+    exit 1
+fi
+
+if ! command -v chroot >/dev/null 2>&1; then
+    echo "[BootDebian] chroot command not found!"
+    exit 1
+fi
+
+MOUNTED_PROC=0
+MOUNTED_SYS=0
+MOUNTED_DEV=0
+
+cleanup() {
+    [ "$MOUNTED_DEV" = "1" ] && umount -l "$ROOT/dev" 2>/dev/null
+    [ "$MOUNTED_SYS" = "1" ] && umount -l "$ROOT/sys" 2>/dev/null
+    [ "$MOUNTED_PROC" = "1" ] && umount -l "$ROOT/proc" 2>/dev/null
+}
+
+trap cleanup EXIT INT TERM
+
+echo "[BootDebian] Preparing environment..."
+
+if ! mount -t proc proc "$ROOT/proc"; then
+    echo "[BootDebian] Cannot mount proc."
+    exit 1
+fi
+MOUNTED_PROC=1
+
+if ! mount --bind /sys "$ROOT/sys"; then
+    echo "[BootDebian] Cannot mount sys."
+    exit 1
+fi
+MOUNTED_SYS=1
+
+if ! mount --bind /dev "$ROOT/dev"; then
+    echo "[BootDebian] Cannot mount dev."
+    exit 1
+fi
+MOUNTED_DEV=1
+
+if [ -f /etc/resolv.conf ]; then
+    cp /etc/resolv.conf "$ROOT/etc/resolv.conf"
+fi
+
+echo "[BootDebian] Starting Debian 13..."
+echo "Type exit to leave Debian."
+echo " "
+
+chroot "$ROOT" /bin/bash -l
+
+echo " "
+echo "[BootDebian] Debian session closed."
