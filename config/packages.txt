@@ -1,1 +1,21 @@
+bash
+ca-certificates
+curl
+wget
+git
+nano
+vim-tiny
+less
+procps
+iproute2
+iputils-ping
+dnsutils
+net-tools
+locales
+sudo
+unzip
+zip
+xz-utils
+file
+build-essential
 
