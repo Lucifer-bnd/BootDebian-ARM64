@@ -31,7 +31,8 @@ jobs:
         run: |
           chmod +x scripts/*.sh
           chmod +x module/customize.sh
-          chmod +x module/system/bin/bootdebian
+          chmod +x module/bootdebian
+          chmod +x module/uninstall.sh
           ./scripts/build-rootfs.sh
           ./scripts/package-module.sh
 
