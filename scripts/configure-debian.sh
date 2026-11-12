@@ -1,9 +1,18 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 
 export DEBIAN_FRONTEND=noninteractive
 
 echo "[BootDebian] Configuring Debian 13..."
+
+# Ensure DNS is available before the first APT request inside chroot.
+cat > /etc/resolv.conf <<'EOF'
+nameserver 1.1.1.1
+nameserver 8.8.8.8
+EOF
+
+# Use one explicit Debian repository definition to avoid duplicate entries.
+rm -f /etc/apt/sources.list.d/debian.sources
 
 cat > /etc/apt/sources.list <<'EOF'
 deb https://deb.debian.org/debian trixie main contrib non-free non-free-firmware
@@ -12,7 +21,6 @@ deb https://security.debian.org/debian-security trixie-security main contrib non
 EOF
 
 apt-get update
-
 xargs -r apt-get install -y --no-install-recommends < /tmp/packages.txt
 
 echo "bootdebian" > /etc/hostname
@@ -23,16 +31,9 @@ if [ -f /etc/locale.gen ]; then
 fi
 
 update-locale LANG=en_US.UTF-8
-
 mkdir -p /root
-
-cat > /etc/resolv.conf <<'EOF'
-nameserver 1.1.1.1
-nameserver 8.8.8.8
-EOF
 
 apt-get clean
 rm -rf /var/lib/apt/lists/*
 
 echo "[BootDebian] Configuration completed."
-
