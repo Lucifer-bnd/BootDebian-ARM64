@@ -1,8 +1,7 @@
-name: Build BootDebian ARM64
+name: Build and Release BootDebian ARM64
 
 on:
   workflow_dispatch:
-
   push:
     tags:
       - "v*"
@@ -14,7 +13,7 @@ jobs:
   build:
     name: Build Debian 13 ARM64
     runs-on: ubuntu-24.04
-
+    timeout-minutes: 90
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -22,24 +21,54 @@ jobs:
       - name: Install build tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y zip unzip
+          sudo apt-get install -y debootstrap qemu-user-static binfmt-support zip unzip ca-certificates tar gzip
 
-      - name: Build Debian RootFS
+      - name: Enable ARM64 emulation
+        run: |
+          sudo update-binfmts --enable qemu-aarch64 || true
+
+      - name: Build Debian root filesystem and module
         run: |
           chmod +x scripts/*.sh
-          chmod +x module/system/bin/bootdebian
           chmod +x module/customize.sh
+          chmod +x module/system/bin/bootdebian
           ./scripts/build-rootfs.sh
-
-      - name: Package module
-        run: |
           ./scripts/package-module.sh
 
-      - name: Upload module
+      - name: Verify ZIP and generate SHA-256
+        run: |
+          unzip -t bootdebian-arm64.zip
+          sha256sum bootdebian-arm64.zip > bootdebian-arm64.zip.sha256
+
+      - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: BootDebian-ARM64
-          path: bootdebian-arm64.zip
+          path: |
+            bootdebian-arm64.zip
+            bootdebian-arm64.zip.sha256
           if-no-files-found: error
           retention-days: 30
 
+  release:
+    name: Publish GitHub Release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: BootDebian-ARM64
+          path: dist
+
+      - name: Publish Release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          name: BootDebian ARM64 ${{ github.ref_name }}
+          generate_release_notes: true
+          files: |
+            dist/bootdebian-arm64.zip
+            dist/bootdebian-arm64.zip.sha256
